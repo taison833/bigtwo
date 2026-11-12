@@ -1,0 +1,2277 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>大老二 Big Two - 網頁版撲克競技</title>
+  <!-- Facebook / LINE 分享預覽設定 -->
+  <meta property="og:title" content="大老二 Big Two - 單機挑戰三家電腦！" />
+  <meta property="og:description" content="免下載、手機電腦點開即玩！支援單張、對子、順子、葫蘆、鐵支、同花順自動判定，快來挑戰你的牌技！" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="theme-color" content="#113d23" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♠</text></svg>" />
+  <style>
+    :root {
+      --felt-green: #1b5e36;
+      --felt-dark: #113d23;
+      --gold: #f5c542;
+      --card-w: 54px;
+      --card-h: 78px;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at center, var(--felt-green) 0%, var(--felt-dark) 100%);
+      color: #fff;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 頂部資訊欄 */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      background: rgba(0, 0, 0, 0.35);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 14px;
+    }
+
+    .title {
+      font-weight: bold;
+      color: var(--gold);
+      font-size: 16px;
+      letter-spacing: 1px;
+    }
+
+    .btn-small {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-small:active {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* 牌桌主區域 */
+    #table-area {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+    }
+
+    /* 對手資訊框 */
+    .bot-row-top {
+      display: flex;
+      justify-content: center;
+    }
+
+    .bot-row-middle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex: 1;
+      padding: 0 4px;
+    }
+
+    .player-badge {
+      background: rgba(0, 0, 0, 0.45);
+      border: 2px solid transparent;
+      border-radius: 10px;
+      padding: 6px 10px;
+      text-align: center;
+      min-width: 82px;
+      transition: all 0.2s;
+      font-size: 13px;
+    }
+
+    .player-badge.active {
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(245, 197, 66, 0.6);
+      background: rgba(0, 0, 0, 0.65);
+    }
+
+    .player-badge .cards-left {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+
+    .player-badge .status-tag {
+      font-size: 11px;
+      color: #ddd;
+      height: 15px;
+    }
+
+    /* 中央出牌展示區 */
+    #center-board {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 125px;
+      margin: 0 8px;
+    }
+
+    #board-label {
+      font-size: 13px;
+      color: #e0f2e9;
+      margin-bottom: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 3px 12px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    #played-cards {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: var(--card-h);
+    }
+
+    /* 撲克牌樣式 */
+    .card {
+      width: var(--card-w);
+      height: var(--card-h);
+      background: #fff;
+      border-radius: 7px;
+      border: 1px solid #999;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 4px 5px;
+      font-weight: bold;
+      position: relative;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .card.red { color: #d92b2b; }
+    .card.black { color: #1a1a1a; }
+
+    .card-top {
+      font-size: 14px;
+      line-height: 1;
+      text-align: left;
+    }
+
+    .card-center {
+      font-size: 22px;
+      text-align: center;
+      line-height: 1;
+    }
+
+    #played-cards .card {
+      margin-left: -16px;
+    }
+    #played-cards .card:first-child {
+      margin-left: 0;
+    }
+
+    /* 玩家操作與手牌區 */
+    #player-zone {
+      background: rgba(0, 0, 0, 0.45);
+      padding: 8px 6px 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #turn-hint {
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--gold);
+      margin-bottom: 8px;
+      min-height: 20px;
+      text-align: center;
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .btn-action {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-play {
+      background: #f5c542;
+      color: #1a1a1a;
+    }
+
+    .btn-play:disabled {
+      background: #666;
+      color: #aaa;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-pass {
+      background: #e05252;
+      color: #fff;
+    }
+
+    .btn-pass:disabled {
+      background: #666;
+      color: #aaa;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-clear {
+      background: #4a6b82;
+      color: #fff;
+    }
+
+    /* 玩家扇形重疊手牌 */
+    #hand-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      width: 100%;
+      max-width: 760px;
+      height: 98px;
+      padding: 0 10px;
+      overflow-x: auto;
+    }
+
+    #hand-container .card {
+      margin-left: -24px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #hand-container .card:first-child {
+      margin-left: 0;
+    }
+
+    #hand-container .card.selected {
+      transform: translateY(-16px);
+      border: 2px solid #2b8cff;
+      box-shadow: 0 6px 12px rgba(43, 140, 255, 0.5);
+    }
+
+    /* 記牌器 */
+    #counter-panel {
+      display: none;
+      background: rgba(0,0,0,0.35);
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      padding: 8px 12px;
+      font-size: 12px;
+      max-height: 210px;
+      overflow-y: auto;
+      line-height: 1.6;
+      color: #e0f2e9;
+    }
+    #counter-panel.show { display: block; }
+    #counter-panel b { color: var(--gold); }
+    .counter-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .counter-cell {
+      background: rgba(255,255,255,0.08);
+      border-radius: 6px;
+      padding: 5px 6px;
+      font-size: 12px;
+    }
+    .counter-cell.dead { background: rgba(224,82,82,0.25); }
+    .counter-cell.mine { background: rgba(61,220,132,0.18); }
+    /* 續玩詢問 */
+    #resume-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.78);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 180;
+      padding: 20px;
+    }
+
+    /* 戰績統計 */
+    #stats-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.78);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 150;
+      padding: 20px;
+    }
+    #stats-modal .modal-box { max-height: 88vh; overflow-y: auto; }
+    .stats-section { text-align: left; margin-top: 14px; }
+    .stats-section h3 { font-size: 15px; color: var(--gold); margin: 0 0 8px; }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .stat-cell {
+      background: rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .stat-cell b { display: block; font-size: 20px; color: #fff; }
+    .stat-cell span { color: #bbb; }
+    .stat-bar-row { font-size: 13px; margin: 6px 0; }
+    .stat-bar-row .stat-label { display: flex; justify-content: space-between; }
+    .stat-bar { height: 8px; background: rgba(255,255,255,0.12); border-radius: 4px; overflow: hidden; margin-top: 3px; }
+    .stat-bar-fill { height: 100%; background: var(--gold); border-radius: 4px; }
+    .stat-bar-fill.blue { background: #2b8cff; }
+    .stat-bar-fill.red { background: #e05252; }
+    .leader-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+    .leader-table th, .leader-table td { padding: 5px 6px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .leader-table th { color: #aaa; font-weight: normal; }
+    .wl-dots { font-size: 16px; letter-spacing: 3px; }
+    .wl-dots .w { color: #3ddc84; }
+    .wl-dots .l { color: #e05252; }
+
+    /* 牌譜 / 重播列 / 思考中 */
+    #history-panel {
+      display: none;
+      background: rgba(0,0,0,0.35);
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      padding: 8px 12px;
+      font-size: 12px;
+      max-height: 110px;
+      overflow-y: auto;
+      line-height: 1.7;
+      color: #e0f2e9;
+    }
+    #history-panel.show { display: block; }
+    #history-panel b { color: var(--gold); }
+    #replay-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: rgba(245,197,66,0.15);
+      border-bottom: 1px solid rgba(245,197,66,0.4);
+      font-size: 13px;
+      color: #ffe9a8;
+    }
+    #replay-bar.show { display: flex; }
+    #thinking-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #ffe9a8;
+    }
+    #thinking-indicator.show { display: flex; }
+    .think-card {
+      width: 22px;
+      height: 32px;
+      border-radius: 4px;
+      background: repeating-linear-gradient(45deg, #1e3a8a 0 4px, #274b9f 4px 8px);
+      border: 1px solid rgba(255,255,255,0.6);
+      animation: thinkBob 0.8s ease-in-out infinite;
+    }
+    .think-card:nth-child(2) { animation-delay: 0.15s; }
+    .think-card:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes thinkBob {
+      0%, 100% { transform: translateY(0) rotate(-4deg); }
+      50% { transform: translateY(-6px) rotate(4deg); }
+    }
+    .think-dots span {
+      display: inline-block;
+      animation: thinkBlink 1.2s infinite;
+    }
+    .think-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .think-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes thinkBlink {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 1; }
+    }
+    .player-badge.thinking {
+      border-color: #2b8cff;
+      box-shadow: 0 0 14px rgba(43,140,255,0.8);
+    }
+    .btn-undo:disabled {
+      background: #666;
+      color: #aaa;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    #daily-label {
+      display: none;
+      font-size: 12px;
+      color: #1a1a1a;
+      background: var(--gold);
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+    #daily-label.show { display: inline-block; }
+
+    /* 難度列 */
+    #top-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(0,0,0,0.25);
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+    .diff-btn {
+      background: rgba(255,255,255,0.12);
+      color: #ddd;
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .diff-btn.active {
+      background: var(--gold);
+      color: #1a1a1a;
+      border-color: var(--gold);
+      font-weight: bold;
+    }
+    /* 動畫 */
+    @keyframes cardPlayIn {
+      from { transform: translateY(18px) scale(0.85); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    #played-cards .card { animation: cardPlayIn 0.28s ease; }
+    @keyframes badgePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    .player-badge.active { animation: badgePulse 0.9s ease-in-out infinite; }
+    @keyframes modalPop {
+      from { transform: scale(0.85) translateY(12px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .modal-box { animation: modalPop 0.3s ease; }
+    @keyframes dealIn {
+      from { transform: translateY(14px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    #hand-container .card.dealing { animation: dealIn 0.3s ease both; }
+    @keyframes shakeX {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    .shake { animation: shakeX 0.3s ease; }
+    @keyframes confettiFall {
+      to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+    .confetti-piece {
+      position: fixed;
+      top: -14px;
+      width: 9px;
+      height: 14px;
+      border-radius: 2px;
+      z-index: 300;
+      pointer-events: none;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes hintGlow {
+      0%, 100% { box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
+      50% { box-shadow: 0 0 14px rgba(43,140,255,0.9); }
+    }
+    .btn-hint { animation: hintGlow 2.2s ease-in-out infinite; }
+
+    /* 計分板 / 提示文字 */
+    #score-board {
+      font-size: 12px;
+      color: #ffe9a8;
+      background: rgba(0,0,0,0.35);
+      padding: 4px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    #play-hint {
+      font-size: 13px;
+      color: #ffe9a8;
+      min-height: 18px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .btn-hint {
+      background: #2b8cff;
+      color: #fff;
+    }
+    .btn-hint:disabled {
+      background: #666;
+      color: #aaa;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .card-bottom {
+      font-size: 14px;
+      line-height: 1;
+      text-align: right;
+    }
+    .card-center small {
+      display: block;
+      font-size: 14px;
+      font-weight: normal;
+      margin-top: 2px;
+    }
+    /* Toast 取代 alert */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 170px;
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(0,0,0,0.88);
+      color: #fff;
+      border: 1px solid rgba(245,197,66,0.6);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 200;
+      max-width: calc(100vw - 32px);
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #rules-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.78);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 150;
+      padding: 20px;
+    }
+    #rules-modal .rules-body {
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #e8e8e8;
+    }
+    #rules-modal .rules-body b { color: var(--gold); }
+
+    /* 結算彈窗 */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-box {
+      background: #1e293b;
+      border: 2px solid var(--gold);
+      border-radius: 14px;
+      padding: 22px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-box h2 {
+      margin: 0 0 14px;
+      color: var(--gold);
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 15px;
+    }
+
+    @media (min-width: 600px) {
+      :root {
+        --card-w: 68px;
+        --card-h: 96px;
+      }
+      #hand-container {
+        height: 118px;
+      }
+      #hand-container .card {
+        margin-left: -20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title">♠ 大老二 Big Two</div>
+    <div id="score-board">積分 0 · 0勝 / 0局</div>
+    <div>
+      <button class="btn-small" onclick="showRules()">規則</button>
+      <button class="btn-small" onclick="resetScore()">清除戰績</button>
+      <button class="btn-small" onclick="initGame()">重新開局</button>
+    </div>
+  </header>
+
+  <div id="top-controls">
+    <span>難度：</span>
+    <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">簡單</button>
+    <button class="diff-btn" data-diff="normal" onclick="setDifficulty('normal')">普通</button>
+    <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">困難</button>
+    <button class="btn-small" onclick="startDailyChallenge()">📅 今日挑戰</button>
+    <button class="btn-small" onclick="toggleHistory()">📜 牌譜</button>
+    <button class="btn-small" onclick="openStats()">🏆 戰績</button>
+    <button class="btn-small" onclick="toggleCounter()">🧮 記牌器</button>
+    <button class="btn-small" onclick="initGame()">🆕 新局</button>
+    <span id="daily-label"></span>
+    <span style="flex:1"></span>
+    <button class="btn-small" id="btn-sound" onclick="toggleSound()">🔊 音效開</button>
+  </div>
+  <div id="replay-bar">
+    <span id="replay-text">重播中…</span>
+    <span style="flex:1"></span>
+    <button class="btn-small" onclick="stopReplay()">停止重播</button>
+  </div>
+  <div id="history-panel"></div>
+  <div id="counter-panel"></div>
+  <div id="confetti"></div>
+
+  <div id="table-area">
+    <!-- 北家電腦 -->
+    <div class="bot-row-top">
+      <div class="player-badge" id="badge-2">
+        <div>電腦 (北)</div>
+        <div class="cards-left" id="count-2">13 張</div>
+        <div class="status-tag" id="status-2"></div>
+      </div>
+    </div>
+
+    <!-- 西家、中央出牌桌、東家 -->
+    <div class="bot-row-middle">
+      <div class="player-badge" id="badge-1">
+        <div>電腦 (西)</div>
+        <div class="cards-left" id="count-1">13 張</div>
+        <div class="status-tag" id="status-1"></div>
+      </div>
+
+      <div id="center-board">
+        <div id="thinking-indicator">
+          <div class="think-card"></div>
+          <div class="think-card"></div>
+          <div class="think-card"></div>
+          <span id="thinking-text">電腦思考中</span><span class="think-dots"><span>.</span><span>.</span><span>.</span></span>
+        </div>
+        <div id="board-label">等待開局...</div>
+        <div id="played-cards"></div>
+      </div>
+
+      <div class="player-badge" id="badge-3">
+        <div>電腦 (東)</div>
+        <div class="cards-left" id="count-3">13 張</div>
+        <div class="status-tag" id="status-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 玩家操作與手牌區 -->
+  <div id="player-zone">
+    <div id="turn-hint">請選擇要打出的牌</div>
+    <div id="play-hint">點牌選取，最多 5 張，或按「提示」</div>
+    <div class="action-bar">
+      <button class="btn-action btn-clear" onclick="clearSelection()">重選</button>
+      <button class="btn-action btn-undo" id="btn-undo" onclick="undoLastMove()">↩ 悔牌</button>
+      <button class="btn-action btn-hint" id="btn-hint" onclick="humanHint()">提示</button>
+      <button class="btn-action btn-pass" id="btn-pass" onclick="humanPass()">PASS</button>
+      <button class="btn-action btn-play" id="btn-play" onclick="humanPlay()">出牌</button>
+    </div>
+    <div id="hand-container"></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- 規則視窗（取代原本的 alert） -->
+  <div id="rules-modal">
+    <div class="modal-box">
+      <h2>♠ 大老二規則</h2>
+      <div class="rules-body">
+        <b>1. 大小：</b>2 &gt; A &gt; K &gt; Q &gt; J &gt; 10 &gt; … &gt; 3；花色 ♠ &gt; ♥ &gt; ♦ &gt; ♣<br />
+        <b>2. 首攻：</b>持有 ♣3 者先出，第一手必須包含 ♣3<br />
+        <b>3. 牌型：</b>單張、對子、順子、同花、葫蘆、鐵支、同花順<br />
+        <b>4. 順子：</b>允許 A-2-3-4-5、2-3-4-5-6 這兩種特殊順子，J-Q-K-A-2 不算順子<br />
+        <b>5. 計分：</b>輸家剩 8 到 9 張扣分 ×2，剩 10 張以上 ×3；手上每留一張 2，罰分再 ×2。贏家獲得所有輸家的扣分總和<br />
+        <b>6. 難度：</b>簡單：電腦常放水、隨便出；普通：出最小能壓的牌、會留牌；困難：會看對手剩幾張來擋牌、尾局更敢拚<br />
+        <b>7. 戰績：</b>積分與勝率會存在這台裝置的瀏覽器裡，重新整理不會消失<br />
+        <b>8. 悔牌：</b>隨時按「悔牌」，可回到你上一次出牌之前（電腦的牌也會一起還原，電腦思考中按下去會直接取消它這手）。開局、重播中、遊戲結束後不能悔牌<br />
+        <b>9. 重播：</b>結算畫面按「重播本局」，會用同一副牌一步步重播，不會重算積分<br />
+        <b>10. 今日挑戰：</b>每天一副固定牌，全世界同一天都拿到同一副牌。當天第一次贏，加碼 +50 分<br />
+        <b>11. 續玩：</b>每出一手都會自動存檔，重新整理、關掉分頁再回來，會問你要不要回到上一局<br />
+        <b>12. 記牌器：</b>按「記牌器」可以看每種點數已出幾張、你手上幾張、對手還可能有幾張，幫你判斷還有沒有炸彈
+      </div>
+      <br />
+      <button class="btn-action btn-play" style="width:100%" onclick="closeRules()">知道了</button>
+    </div>
+  </div>
+
+  <!-- 續玩詢問視窗 -->
+  <div id="resume-modal">
+    <div class="modal-box">
+      <h2>💾 發現上一局還沒打完</h2>
+      <div id="resume-info" style="font-size:14px;line-height:1.8;text-align:left"></div>
+      <br />
+      <button class="btn-action btn-play" style="width:100%" onclick="resumeSavedGame()">回到上一局</button>
+      <br /><br />
+      <button class="btn-action btn-clear" style="width:100%" onclick="discardSavedGame()">放棄上一局，開始新局</button>
+      <div style="font-size:12px;color:#aaa;margin-top:8px">每出一手都會自動存檔，重新整理、關掉分頁再回來都可以續玩</div>
+    </div>
+  </div>
+
+  <!-- 戰績統計視窗 -->
+  <div id="stats-modal">
+    <div class="modal-box">
+      <h2>🏆 個人戰績</h2>
+      <div id="stats-content"></div>
+      <br />
+      <button class="btn-action btn-play" style="width:100%" onclick="closeStats()">關閉</button>
+      <br /><br />
+      <button class="btn-action btn-clear" style="width:100%" onclick="resetScore()">清除全部戰績</button>
+      <div style="font-size:12px;color:#aaa;margin-top:8px">戰績存在這台裝置的瀏覽器裡，重播不會重算</div>
+    </div>
+  </div>
+
+  <!-- 結算視窗 -->
+  <div id="modal-overlay">
+    <div class="modal-box">
+      <h2 id="modal-title">遊戲結束</h2>
+      <div id="modal-content"></div>
+      <br />
+      <button class="btn-action btn-play" style="width:100%" onclick="initGame()">再玩一局</button>
+      <br /><br />
+      <button class="btn-action btn-hint" style="width:100%" onclick="startReplay()">▶ 重播本局</button>
+      <div style="font-size:12px;color:#aaa;margin-top:8px">重播不會重算積分，可一步步看自己哪裡打錯</div>
+    </div>
+  </div>
+
+  <script>
+    // 花色: 0=梅花♣, 1=方塊♦, 2=紅心♥, 3=黑桃♠
+    const SUITS = ["♣", "♦", "♥", "♠"];
+    // 點數權重: 0=3, 1=4, ..., 9=Q, 10=K, 11=A, 12=2
+    const RANKS = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2"];
+
+    let players = [];
+    let currentTurn = 0; // 0=玩家, 1=西, 2=北, 3=東
+    let lastPlay = null; // { playerIdx, type, rankValue, suitValue, cards, label }
+    let passCount = 0;
+    let isFirstTurn = true;
+    let gameOver = false;
+    let selectedIndices = new Set();
+    let botTimer = null;
+    let toastTimer = null;
+    // 難度 + 音效（都存 localStorage）
+    let difficulty = "normal";
+    try { difficulty = localStorage.getItem("bigtwo_difficulty") || "normal"; } catch (e) {}
+    if (!["easy", "normal", "hard"].includes(difficulty)) difficulty = "normal";
+    let soundOn = true;
+    try { soundOn = localStorage.getItem("bigtwo_sound") !== "off"; } catch (e) {}
+    let audioCtx = null;
+    let justDealt = false;
+    // v5：中斷續玩 + 記牌器
+    const SAVE_KEY = "bigtwo_save_v1";
+    function buildSaveData() {
+      return {
+        version: 1,
+        savedAt: Date.now(),
+        players: players.map(pl => ({ name: pl.name, isHuman: pl.isHuman, hand: pl.hand.map(cloneCard) })),
+        currentTurn,
+        lastPlay: lastPlay ? { playerIdx: lastPlay.playerIdx, count: lastPlay.count, level: lastPlay.level, mainRank: lastPlay.mainRank, mainSuit: lastPlay.mainSuit, name: lastPlay.name, cards: lastPlay.cards.map(cloneCard) } : null,
+        passCount,
+        isFirstTurn,
+        gameOver: false,
+        moveLog: moveLog.map(m => ({ ...m, cards: m.cards.map(cloneCard) })),
+        undoStack: undoStack.map(u => JSON.parse(JSON.stringify(u))),
+        initialSnapshot: initialSnapshot ? JSON.parse(JSON.stringify(initialSnapshot)) : null,
+        isDailyChallenge,
+        dailyDateStr,
+        difficulty
+      };
+    }
+    function saveMidGame() {
+      if (isReplaying || gameOver) return;
+      if (!players || players.length !== 4) return;
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(buildSaveData())); } catch (e) {}
+    }
+    function clearMidGameSave() {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    }
+    function getSavedGame() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (!data || !Array.isArray(data.players) || data.players.length !== 4) return null;
+        if (!Array.isArray(data.moveLog)) return null;
+        if (data.gameOver) return null;
+        return data;
+      } catch (e) { return null; }
+    }
+    function restoreSaveData(data) {
+      clearTimeout(botTimer);
+      clearTimeout(replayTimer);
+      isReplaying = false;
+      const bar = document.getElementById("replay-bar");
+      if (bar) bar.classList.remove("show");
+      players = data.players.map(pl => ({ name: pl.name, isHuman: pl.isHuman, hand: pl.hand.map(cloneCard) }));
+      currentTurn = data.currentTurn;
+      lastPlay = data.lastPlay ? { ...data.lastPlay, cards: data.lastPlay.cards.map(cloneCard) } : null;
+      passCount = data.passCount || 0;
+      isFirstTurn = !!data.isFirstTurn;
+      gameOver = false;
+      isDailyChallenge = !!data.isDailyChallenge;
+      dailyDateStr = data.dailyDateStr || "";
+      if (["easy", "normal", "hard"].includes(data.difficulty)) difficulty = data.difficulty;
+      selectedIndices.clear();
+      moveLog = (data.moveLog || []).map(m => ({ ...m, cards: (m.cards || []).map(cloneCard) }));
+      undoStack = (data.undoStack || []).map(u => JSON.parse(JSON.stringify(u)));
+      initialSnapshot = data.initialSnapshot ? JSON.parse(JSON.stringify(data.initialSnapshot)) : snapshotState();
+      lastEndHtml = "";
+      lastWinnerIdx = -1;
+      document.getElementById("modal-overlay").style.display = "none";
+      document.getElementById("stats-modal").style.display = "none";
+      hideThinking();
+      if (lastPlay) {
+        renderPlayedCards(players[lastPlay.playerIdx].name, lastPlay.name, lastPlay.cards);
+      } else {
+        document.getElementById("played-cards").innerHTML = "";
+        document.getElementById("board-label").textContent = "回到上一局，獲得自由出牌權";
+      }
+      for (let p = 1; p <= 3; p++) document.getElementById(`status-${p}`).textContent = "";
+      if (lastPlay && lastPlay.playerIdx > 0) document.getElementById(`status-${lastPlay.playerIdx}`).textContent = lastPlay.name;
+      updateHistoryUI();
+      updateDailyUI();
+      updateDifficultyUI();
+      updateSoundUI();
+      updateScoreBoard();
+      updateCounterUI();
+      updateUI();
+      processTurn();
+    }
+    function showResumeModal(data) {
+      const el = document.getElementById("resume-info");
+      if (el) {
+        const d = new Date(data.savedAt || Date.now());
+        const timeStr = d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+        const myHand = data.players[0] ? data.players[0].hand.length : 0;
+        const turnName = data.players[data.currentTurn] ? data.players[data.currentTurn].name : "";
+        const mode = data.isDailyChallenge ? "📅 今日挑戰 " + (data.dailyDateStr || "") : "一般局";
+        const diffLabel = data.difficulty === "easy" ? "簡單" : data.difficulty === "hard" ? "困難" : "普通";
+        el.innerHTML = `存檔時間：${timeStr}<br />模式：${mode} · 難度 ${diffLabel}<br />你還剩 <b>${myHand} 張</b>，已出 <b>${data.moveLog.length} 手</b><br />現在輪到：<b>${turnName}</b>${data.lastPlay ? "<br />場上最大：" + data.lastPlay.name : ""}`;
+      }
+      document.getElementById("resume-modal").style.display = "flex";
+    }
+    function checkResumeOnLoad() {
+      const saved = getSavedGame();
+      if (saved) { showResumeModal(saved); return; }
+      initGame();
+    }
+    function resumeSavedGame() {
+      playClick();
+      const saved = getSavedGame();
+      document.getElementById("resume-modal").style.display = "none";
+      if (!saved) { initGame(); return; }
+      restoreSaveData(saved);
+      showToast("已回到上一局");
+    }
+    function discardSavedGame() {
+      playClick();
+      clearMidGameSave();
+      document.getElementById("resume-modal").style.display = "none";
+      initGame();
+    }
+    // 記牌器：從牌譜 + 自己的手牌，算出每種點數還剩幾張在對手手上
+    function getPlayedCards() {
+      const out = [];
+      moveLog.forEach(m => { if (m.type === "play") (m.cards || []).forEach(c => out.push(c)); });
+      return out;
+    }
+    function updateCounterUI() {
+      const el = document.getElementById("counter-panel");
+      if (!el) return;
+      if (!players || players.length !== 4 || !players[0]) { el.innerHTML = "還沒有牌局"; return; }
+      const played = getPlayedCards();
+      const myHand = players[0].hand;
+      const totalPlayed = played.length;
+      const oppTotal = 52 - totalPlayed - myHand.length;
+      const suitNames = ["♣", "♦", "♥", "♠"];
+      function rankInfo(rank) {
+        const playedOf = played.filter(c => c.rank === rank);
+        const myOf = myHand.filter(c => c.rank === rank);
+        const unseen = 4 - playedOf.length - myOf.length;
+        const remainingSuits = [0, 1, 2, 3].filter(s => !playedOf.some(c => c.suit === s) && !myOf.some(c => c.suit === s)).map(s => suitNames[s]);
+        return { playedOf, myOf, unseen, remainingSuits };
+      }
+      // 大牌明細：2、A、K
+      const bigRows = [12, 11, 10].map(rank => {
+        const info = rankInfo(rank);
+        const label = RANKS[rank];
+        const playedStr = info.playedOf.length > 0 ? info.playedOf.map(c => c.label).join(" ") : "都還沒出";
+        const myStr = info.myOf.length > 0 ? info.myOf.map(c => c.label).join(" ") : "你沒有";
+        const remStr = info.unseen === 0 ? "全部都出來了" : "對手可能還有 " + info.unseen + " 張（" + (info.remainingSuits.join(" ") || "花色不明") + "）";
+        return `<div style="margin:4px 0"><b>${label}：</b>已出 ${info.playedOf.length} 張（${playedStr}） · 你手上 ${info.myOf.length} 張（${myStr}） · ${remStr}</div>`;
+      }).join("");
+      // 炸彈警戒：只有「完全沒出過、你也沒有」的那種點數，對手才可能湊到 4 張炸彈
+      const bombPossible = [];
+      for (let r = 0; r < 13; r++) {
+        const info = rankInfo(r);
+        if (info.playedOf.length === 0 && info.myOf.length === 0) bombPossible.push(RANKS[r]);
+      }
+      const myBomb = [];
+      for (let r = 0; r < 13; r++) {
+        if (rankInfo(r).myOf.length === 4) myBomb.push(RANKS[r]);
+      }
+      // 全點數表格：2 到 3
+      const allRows = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(rank => {
+        const info = rankInfo(rank);
+        const cls = info.unseen === 0 ? "counter-cell dead" : info.myOf.length >= 3 ? "counter-cell mine" : "counter-cell";
+        const hint = info.unseen === 0 ? "死牌" : info.myOf.length === 4 ? "你有炸彈" : "";
+        return `<div class="${cls}"><b>${RANKS[rank]}</b><br />已出 ${info.playedOf.length} · 你 ${info.myOf.length} · 對手可能 ${info.unseen} ${hint ? "<br />" + hint : ""}</div>`;
+      }).join("");
+      el.innerHTML = `
+        <div>已出 <b>${totalPlayed} / 52 張</b> · 你的手牌 <b>${myHand.length} 張</b> · 對手共 <b>${oppTotal} 張</b>（還沒出、也不在你手上）</div>
+        ${bigRows}
+        <div style="margin-top:6px">炸彈警戒：${myBomb.length > 0 ? "你有炸彈 " + myBomb.join(" ") + "！" : bombPossible.length > 0 ? "還有可能湊炸彈的點數：" + bombPossible.join(" ") + "（都還沒出、你也沒有，小心對手）" : "所有點數都已經出過至少一張，沒人能再湊新炸彈"}</div>
+        <div class="counter-grid">${allRows}</div>
+        <div style="color:#aaa;margin-top:6px">記牌器只算「已經出過的牌 + 你的手牌」，對手可能有的張數是推算，不是透視。悔牌、重播、續玩都會跟著更新。</div>
+      `;
+    }
+    function toggleCounter() {
+      playClick();
+      const el = document.getElementById("counter-panel");
+      el.classList.toggle("show");
+      updateCounterUI();
+    }
+    // v3：悔牌 / 牌譜 / 重播 / 每日挑戰
+    let undoStack = [];
+    let moveLog = [];
+    let initialSnapshot = null;
+    let isReplaying = false;
+    let replayTimer = null;
+    let replayIndex = 0;
+    let replayLog = [];
+    let lastEndHtml = "";
+    let lastWinnerIdx = -1;
+    let isDailyChallenge = false;
+    let dailyDateStr = "";
+
+    function cloneCard(c) { return { suit: c.suit, rank: c.rank, id: c.id, label: c.label, isRed: c.isRed }; }
+    function snapshotState() {
+      return {
+        players: players.map(pl => ({ name: pl.name, isHuman: pl.isHuman, hand: pl.hand.map(cloneCard) })),
+        currentTurn,
+        lastPlay: lastPlay ? { playerIdx: lastPlay.playerIdx, count: lastPlay.count, level: lastPlay.level, mainRank: lastPlay.mainRank, mainSuit: lastPlay.mainSuit, name: lastPlay.name, cards: lastPlay.cards.map(cloneCard) } : null,
+        passCount,
+        isFirstTurn,
+        gameOver,
+        logLength: moveLog.length,
+        isDailyChallenge,
+        dailyDateStr
+      };
+    }
+    function restoreSnapshot(snap) {
+      clearTimeout(botTimer);
+      clearTimeout(replayTimer);
+      isReplaying = false;
+      const bar = document.getElementById("replay-bar");
+      if (bar) bar.classList.remove("show");
+      players = snap.players.map(pl => ({ name: pl.name, isHuman: pl.isHuman, hand: pl.hand.map(cloneCard) }));
+      currentTurn = snap.currentTurn;
+      lastPlay = snap.lastPlay ? { ...snap.lastPlay, cards: snap.lastPlay.cards.map(cloneCard) } : null;
+      passCount = snap.passCount;
+      isFirstTurn = snap.isFirstTurn;
+      gameOver = snap.gameOver;
+      isDailyChallenge = snap.isDailyChallenge;
+      dailyDateStr = snap.dailyDateStr;
+      selectedIndices.clear();
+      moveLog = moveLog.slice(0, snap.logLength);
+      document.getElementById("modal-overlay").style.display = "none";
+      hideThinking();
+      // 還原中央牌桌
+      if (lastPlay) {
+        renderPlayedCards(players[lastPlay.playerIdx].name, lastPlay.name, lastPlay.cards);
+      } else {
+        document.getElementById("played-cards").innerHTML = "";
+        document.getElementById("board-label").textContent = "獲得自由出牌權";
+      }
+      for (let p = 1; p <= 3; p++) {
+        document.getElementById(`status-${p}`).textContent = "";
+      }
+      if (lastPlay && lastPlay.playerIdx > 0) {
+        document.getElementById(`status-${lastPlay.playerIdx}`).textContent = lastPlay.name;
+      }
+      updateHistoryUI();
+      updateDailyUI();
+      updateUI();
+      processTurn();
+    }
+    function pushUndoSnapshot() {
+      if (isReplaying || gameOver) return;
+      undoStack.push(snapshotState());
+      if (undoStack.length > 30) undoStack.shift();
+    }
+    function undoLastMove() {
+      ensureAudio(); playClick();
+      if (isReplaying) { showToast("重播中不能悔牌，請先按停止重播"); return; }
+      if (gameOver) { showToast("遊戲已結束，不能悔牌"); return; }
+      // 允許在電腦思考中悔牌：restoreSnapshot 會先 clearTimeout(botTimer)，不會跟電腦搶回合
+      const snap = undoStack.pop();
+      if (!snap) { showToast("已經是開局了，沒得悔了"); return; }
+      restoreSnapshot(snap);
+      showToast("已回到上一次出牌之前");
+    }
+    function updateHistoryUI() {
+      const el = document.getElementById("history-panel");
+      if (!el) return;
+      if (moveLog.length === 0) {
+        el.innerHTML = "還沒有出牌紀錄，開局後這裡會記下每一手";
+        return;
+      }
+      el.innerHTML = moveLog.map((m, i) => {
+        const who = players[m.playerIdx] ? players[m.playerIdx].name : ("玩家" + m.playerIdx);
+        const what = m.type === "pass" ? "<b>PASS</b>" : "<b>" + m.name + "</b> " + m.cards.map(c => c.label).join(" ");
+        return `<div>第 ${i + 1} 手：${who} ${what}</div>`;
+      }).join("");
+      el.scrollTop = el.scrollHeight;
+    }
+    function toggleHistory() {
+      playClick();
+      document.getElementById("history-panel").classList.toggle("show");
+      updateHistoryUI();
+    }
+    function showThinking(name) {
+      const ind = document.getElementById("thinking-indicator");
+      if (ind) ind.classList.add("show");
+      const txt = document.getElementById("thinking-text");
+      if (txt) txt.textContent = name + " 思考中";
+      for (let p = 1; p <= 3; p++) {
+        const badge = document.getElementById(`badge-${p}`);
+        if (badge) badge.classList.toggle("thinking", currentTurn === p);
+      }
+    }
+    function hideThinking() {
+      const ind = document.getElementById("thinking-indicator");
+      if (ind) ind.classList.remove("show");
+      for (let p = 1; p <= 3; p++) {
+        const badge = document.getElementById(`badge-${p}`);
+        if (badge) badge.classList.remove("thinking");
+      }
+    }
+    // 每日挑戰：用日期當種子，同一天所有人都拿到同一副牌
+    function hashSeed(str) {
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return h >>> 0;
+    }
+    function mulberry32(a) {
+      return function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    function updateDailyUI() {
+      const el = document.getElementById("daily-label");
+      if (!el) return;
+      if (isDailyChallenge && dailyDateStr) {
+        el.textContent = "📅 今日挑戰 " + dailyDateStr;
+        el.classList.add("show");
+      } else {
+        el.classList.remove("show");
+      }
+    }
+    function startDailyChallenge() {
+      ensureAudio(); playClick();
+      const d = new Date();
+      const str = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+      dailyDateStr = str;
+      isDailyChallenge = true;
+      initGame(hashSeed(str));
+      showToast("今日挑戰 " + str + "：全世界同一天都是這副牌，當天首勝 +50 分");
+    }
+    // 重播：用同一副牌 + 同一串牌譜，一步步重播，不重算積分
+    function startReplay() {
+      if (!initialSnapshot || moveLog.length === 0) { showToast("這局還沒有牌譜可以重播"); return; }
+      playClick();
+      clearTimeout(botTimer);
+      document.getElementById("modal-overlay").style.display = "none";
+      isReplaying = true;
+      replayLog = moveLog.map(m => ({ ...m, cards: m.cards.map(cloneCard) }));
+      replayIndex = 0;
+      // 回到開局快照，但保留牌譜
+      const snap = initialSnapshot;
+      const savedLog = replayLog;
+      players = snap.players.map(pl => ({ name: pl.name, isHuman: pl.isHuman, hand: pl.hand.map(cloneCard) }));
+      currentTurn = snap.currentTurn;
+      lastPlay = null;
+      passCount = 0;
+      isFirstTurn = true;
+      gameOver = false;
+      isDailyChallenge = snap.isDailyChallenge;
+      dailyDateStr = snap.dailyDateStr;
+      selectedIndices.clear();
+      moveLog = [];
+      document.getElementById("played-cards").innerHTML = "";
+      document.getElementById("board-label").textContent = "重播中：回到開局";
+      hideThinking();
+      updateHistoryUI();
+      updateUI();
+      const bar = document.getElementById("replay-bar");
+      if (bar) bar.classList.add("show");
+      document.getElementById("replay-text").textContent = "重播中 0 / " + savedLog.length;
+      replayTimer = setTimeout(stepReplay, 700);
+    }
+    function applyLogEntry(m) {
+      if (m.type === "pass") {
+        passCount++;
+        if (m.playerIdx > 0) document.getElementById(`status-${m.playerIdx}`).textContent = "PASS";
+        if (passCount >= 3 && lastPlay) {
+          currentTurn = lastPlay.playerIdx;
+          lastPlay = null;
+          passCount = 0;
+          for (let p = 1; p <= 3; p++) document.getElementById(`status-${p}`).textContent = "";
+          document.getElementById("played-cards").innerHTML = "";
+          document.getElementById("board-label").textContent = `【${players[currentTurn].name}】獲得自由出牌權`;
+        } else {
+          currentTurn = (currentTurn + 1) % 4;
+          if (lastPlay) document.getElementById("board-label").textContent = `${players[m.playerIdx].name} 喊出 PASS`;
+        }
+        return;
+      }
+      // play
+      const ids = new Set(m.cards.map(c => c.id));
+      players[m.playerIdx].hand = players[m.playerIdx].hand.filter(c => !ids.has(c.id));
+      lastPlay = { playerIdx: m.playerIdx, count: m.count, level: m.level, mainRank: m.mainRank, mainSuit: m.mainSuit, name: m.name, cards: m.cards.map(cloneCard) };
+      passCount = 0;
+      isFirstTurn = false;
+      for (let p = 1; p <= 3; p++) document.getElementById(`status-${p}`).textContent = (p === m.playerIdx) ? m.name : "";
+      renderPlayedCards(players[m.playerIdx].name, m.name, m.cards);
+      currentTurn = (currentTurn + 1) % 4;
+    }
+    function stepReplay() {
+      if (!isReplaying) return;
+      if (replayIndex >= replayLog.length) { finishReplay(); return; }
+      const m = replayLog[replayIndex];
+      // 重播時也同步牌譜，讓玩家看到播到哪
+      moveLog.push({ ...m, cards: m.cards.map(cloneCard) });
+      playCardSound();
+      applyLogEntry(m);
+      updateHistoryUI();
+      updateUI();
+      // 重播時不要讓 processTurn 觸發電腦 AI：直接更新畫面就好，turn-hint 手動寫
+      document.getElementById("turn-hint").textContent = "重播中…正在播放第 " + (replayIndex + 1) + " 手";
+      document.getElementById("replay-text").textContent = "重播中 " + (replayIndex + 1) + " / " + replayLog.length;
+      replayIndex++;
+      replayTimer = setTimeout(stepReplay, 850);
+    }
+    function finishReplay() {
+      isReplaying = false;
+      gameOver = true;
+      const bar = document.getElementById("replay-bar");
+      if (bar) bar.classList.remove("show");
+      updateUI();
+      document.getElementById("turn-hint").textContent = "重播結束";
+      showToast("重播結束，積分沒有重算");
+      // 還原結算畫面（不重算分）
+      const modal = document.getElementById("modal-overlay");
+      const title = document.getElementById("modal-title");
+      const content = document.getElementById("modal-content");
+      if (lastEndHtml) {
+        title.textContent = lastWinnerIdx === 0 ? "🎉 恭喜你贏得大老二！" : `🏆 ${players[lastWinnerIdx].name} 獲勝！`;
+        content.innerHTML = lastEndHtml;
+        modal.style.display = "flex";
+      }
+    }
+    function stopReplay() {
+      playClick();
+      if (!isReplaying) return;
+      clearTimeout(replayTimer);
+      isReplaying = false;
+      // 停止時直接跳回最終局面（用牌譜重算一次，不重算積分）
+      const saved = replayLog;
+      const snap = initialSnapshot;
+      players = snap.players.map(pl => ({ name: pl.name, isHuman: pl.isHuman, hand: pl.hand.map(cloneCard) }));
+      currentTurn = snap.currentTurn; lastPlay = null; passCount = 0; isFirstTurn = true; gameOver = true;
+      moveLog = [];
+      saved.forEach(m => { moveLog.push({ ...m, cards: m.cards.map(cloneCard) }); applyLogEntry(m); });
+      const bar = document.getElementById("replay-bar");
+      if (bar) bar.classList.remove("show");
+      updateHistoryUI();
+      updateUI();
+      showToast("已停止重播，回到最終局面");
+      const modal = document.getElementById("modal-overlay");
+      if (lastEndHtml) {
+        document.getElementById("modal-title").textContent = lastWinnerIdx === 0 ? "🎉 恭喜你贏得大老二！" : `🏆 ${players[lastWinnerIdx].name} 獲勝！`;
+        document.getElementById("modal-content").innerHTML = lastEndHtml;
+        modal.style.display = "flex";
+      }
+    }
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+      }
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    }
+    function tone(freq, start, dur, type, vol) {
+      if (!soundOn) return;
+      ensureAudio();
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime + start;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type || "sine";
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.12, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + dur + 0.05);
+    }
+    function playClick() { tone(800, 0, 0.06, "triangle", 0.08); }
+    function playCardSound() { tone(220, 0, 0.08, "triangle", 0.15); tone(520, 0.05, 0.09, "sine", 0.12); }
+    function playPassSound() { tone(300, 0, 0.1, "sine", 0.1); tone(240, 0.08, 0.12, "sine", 0.1); }
+    function playInvalidSound() { tone(160, 0, 0.15, "sawtooth", 0.08); }
+    function playWinSound() { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.12, 0.25, "triangle", 0.14)); }
+    function playLoseSound() { [400, 340, 280].forEach((f, i) => tone(f, i * 0.15, 0.3, "sine", 0.1)); }
+    function playShuffleSound() { [500, 620, 740].forEach((f, i) => tone(f, i * 0.07, 0.07, "triangle", 0.07)); }
+    function toggleSound() {
+      soundOn = !soundOn;
+      try { localStorage.setItem("bigtwo_sound", soundOn ? "on" : "off"); } catch (e) {}
+      updateSoundUI();
+      if (soundOn) { ensureAudio(); playClick(); }
+    }
+    function updateSoundUI() {
+      const b = document.getElementById("btn-sound");
+      if (b) b.textContent = soundOn ? "🔊 音效開" : "🔇 音效關";
+    }
+    function setDifficulty(d) {
+      difficulty = d;
+      try { localStorage.setItem("bigtwo_difficulty", d); } catch (e) {}
+      updateDifficultyUI();
+      ensureAudio(); playClick();
+      const label = d === "easy" ? "簡單：電腦會放水" : d === "hard" ? "困難：電腦會擋牌，要小心" : "普通：標準 AI";
+      showToast("難度已切換為「" + label + "」，下一手開始生效");
+    }
+    function updateDifficultyUI() {
+      document.querySelectorAll(".diff-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.diff === difficulty);
+      });
+    }
+    function getBotDelay() {
+      return difficulty === "easy" ? 950 : difficulty === "hard" ? 550 : 750;
+    }
+    function launchConfetti() {
+      const box = document.getElementById("confetti");
+      if (!box) return;
+      box.innerHTML = "";
+      const colors = ["#f5c542", "#e05252", "#2b8cff", "#3ddc84", "#ff8fd8", "#ffffff"];
+      for (let i = 0; i < 64; i++) {
+        const el = document.createElement("div");
+        el.className = "confetti-piece";
+        el.style.left = Math.random() * 100 + "vw";
+        el.style.background = colors[i % colors.length];
+        el.style.animationDuration = (1.8 + Math.random() * 1.6) + "s";
+        el.style.animationDelay = (Math.random() * 0.5) + "s";
+        box.appendChild(el);
+      }
+      setTimeout(() => { box.innerHTML = ""; }, 3800);
+    }
+    function shakeBoard() {
+      const el = document.getElementById("board-label");
+      if (!el) return;
+      el.classList.remove("shake");
+      void el.offsetWidth;
+      el.classList.add("shake");
+    }
+    // 計分：存在 localStorage，重新整理不消失
+    let score = { points: 0, wins: 0, games: 0 };
+    try {
+      const saved = JSON.parse(localStorage.getItem("bigtwo_score_v1") || "null");
+      if (saved) score = { points: 0, wins: 0, games: 0, ...saved };
+    } catch (e) {}
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+    function showRules() {
+      playClick();
+      document.getElementById("rules-modal").style.display = "flex";
+    }
+    function closeRules() {
+      playClick();
+      document.getElementById("rules-modal").style.display = "none";
+    }
+    function updateScoreBoard() {
+      const el = document.getElementById("score-board");
+      if (!el) return;
+      const rate = score.games > 0 ? Math.round((score.wins / score.games) * 100) : 0;
+      el.textContent = `積分 ${score.points} · ${score.wins}勝 / ${score.games}局 (${rate}%)`;
+    }
+    function saveScore() {
+      try { localStorage.setItem("bigtwo_score_v1", JSON.stringify(score)); } catch (e) {}
+    }
+    // v4：完整統計（牌型偏好 / 輸給誰 / 難度 / 每日挑戰排行榜）
+    function emptyStats() {
+      return {
+        streak: 0, bestStreak: 0,
+        totalMoves: 0, totalCardsPlayed: 0,
+        comboCounts: { "單張": 0, "一對": 0, "順子": 0, "同花": 0, "葫蘆": 0, "鐵支": 0, "同花順": 0 },
+        lossTo: { "1": 0, "2": 0, "3": 0 },
+        diffGames: { easy: 0, normal: 0, hard: 0 },
+        diffWins: { easy: 0, normal: 0, hard: 0 },
+        dailyGames: 0, dailyWins: 0,
+        dailyResults: [],
+        totalRemainingWhenLose: 0, loseCount: 0,
+        bestWinPoints: 0,
+        last10: []
+      };
+    }
+    let stats = emptyStats();
+    try {
+      const sSaved = JSON.parse(localStorage.getItem("bigtwo_stats_v1") || "null");
+      if (sSaved) stats = { ...emptyStats(), ...sSaved, comboCounts: { ...emptyStats().comboCounts, ...(sSaved.comboCounts || {}) }, lossTo: { ...emptyStats().lossTo, ...(sSaved.lossTo || {}) }, diffGames: { ...emptyStats().diffGames, ...(sSaved.diffGames || {}) }, diffWins: { ...emptyStats().diffWins, ...(sSaved.diffWins || {}) } };
+      // 舊版只有 score 沒有 stats 時，把舊計分遷移過來，不讓老玩家歸零
+      if (!sSaved && score.games > 0) {
+        stats.bestStreak = score.wins > 0 ? 1 : 0;
+      }
+      if (!Array.isArray(stats.dailyResults)) stats.dailyResults = [];
+      if (!Array.isArray(stats.last10)) stats.last10 = [];
+    } catch (e) {}
+    function saveStats() {
+      try { localStorage.setItem("bigtwo_stats_v1", JSON.stringify(stats)); } catch (e) {}
+    }
+    function comboLabelForLevel(level) {
+      return ["", "單張", "一對", "順子", "同花", "葫蘆", "鐵支", "同花順"][level] || "單張";
+    }
+    function recordHumanCombo(ev) {
+      if (isReplaying) return;
+      stats.totalMoves += 1;
+      stats.totalCardsPlayed += ev.count || 0;
+      const label = comboLabelForLevel(ev.level);
+      if (stats.comboCounts[label] !== undefined) stats.comboCounts[label] += 1;
+      saveStats();
+    }
+    function recordGameEnd(winnerIdx, totalPenalty, penalties) {
+      const won = winnerIdx === 0;
+      // 連勝
+      if (won) { stats.streak += 1; stats.bestStreak = Math.max(stats.bestStreak, stats.streak); }
+      else { stats.streak = 0; }
+      // 難度
+      const d = ["easy", "normal", "hard"].includes(difficulty) ? difficulty : "normal";
+      stats.diffGames[d] = (stats.diffGames[d] || 0) + 1;
+      if (won) stats.diffWins[d] = (stats.diffWins[d] || 0) + 1;
+      // 輸給誰 / 輸時剩幾張
+      if (!won) {
+        stats.lossTo[String(winnerIdx)] = (stats.lossTo[String(winnerIdx)] || 0) + 1;
+        stats.totalRemainingWhenLose += players[0].hand.length;
+        stats.loseCount += 1;
+      } else {
+        stats.bestWinPoints = Math.max(stats.bestWinPoints, totalPenalty);
+      }
+      // 每日挑戰排行榜：每一局都記，方便比最高分
+      if (isDailyChallenge && dailyDateStr) {
+        stats.dailyGames += 1;
+        if (won) stats.dailyWins += 1;
+        stats.dailyResults.push({
+          date: dailyDateStr,
+          win: won,
+          points: won ? totalPenalty : -penalties[0],
+          remaining: players[0].hand.length,
+          difficulty: d
+        });
+        if (stats.dailyResults.length > 100) stats.dailyResults = stats.dailyResults.slice(-100);
+      }
+      // 近 10 局
+      stats.last10.push({ win: won, points: won ? totalPenalty : -penalties[0] });
+      if (stats.last10.length > 10) stats.last10 = stats.last10.slice(-10);
+      saveStats();
+      return won ? `目前連勝 ${stats.streak} 場（最佳 ${stats.bestStreak} 場）` : `連勝中斷（最佳 ${stats.bestStreak} 場）`;
+    }
+    function openStats() {
+      playClick();
+      renderStats();
+      document.getElementById("stats-modal").style.display = "flex";
+    }
+    function closeStats() {
+      playClick();
+      document.getElementById("stats-modal").style.display = "none";
+    }
+    function renderStats() {
+      const el = document.getElementById("stats-content");
+      if (!el) return;
+      const games = score.games;
+      const wins = score.wins;
+      const rate = games > 0 ? Math.round((wins / games) * 100) : 0;
+      const avg = games > 0 ? (score.points / games).toFixed(1) : "0.0";
+      if (games === 0) {
+        el.innerHTML = `<div style="font-size:14px;line-height:1.7">還沒有對局紀錄，去打一局吧。<br />打完這裡會有牌型偏好、輸給誰、難度戰績、每日挑戰排行榜。</div>`;
+        return;
+      }
+      const comboEntries = Object.entries(stats.comboCounts).sort((a, b) => b[1] - a[1]);
+      const maxCombo = Math.max(1, ...comboEntries.map(e => e[1]));
+      const mostCombo = comboEntries[0][1] > 0 ? comboEntries[0][0] : "還沒有";
+      const botNames = { "1": "電腦（西）", "2": "電腦（北）", "3": "電腦（東）" };
+      const lossEntries = Object.entries(stats.lossTo).sort((a, b) => b[1] - a[1]);
+      const mostLoss = lossEntries[0][1] > 0 ? botNames[lossEntries[0][0]] : "還沒有輸過";
+      const maxLoss = Math.max(1, ...lossEntries.map(e => e[1]));
+      const avgLoseRemain = stats.loseCount > 0 ? (stats.totalRemainingWhenLose / stats.loseCount).toFixed(1) : "-";
+      const diffRows = ["easy", "normal", "hard"].map(d => {
+        const g = stats.diffGames[d] || 0;
+        const w = stats.diffWins[d] || 0;
+        const r = g > 0 ? Math.round((w / g) * 100) : 0;
+        const label = d === "easy" ? "簡單" : d === "hard" ? "困難" : "普通";
+        return `<div class="stat-bar-row"><div class="stat-label"><span>${label}</span><span>${w}勝 / ${g}局（${r}%）</span></div><div class="stat-bar"><div class="stat-bar-fill blue" style="width:${r}%"></div></div></div>`;
+      }).join("");
+      const dailyRate = stats.dailyGames > 0 ? Math.round((stats.dailyWins / stats.dailyGames) * 100) : 0;
+      const sortedDaily = [...stats.dailyResults].sort((a, b) => b.points - a.points).slice(0, 5);
+      const dailyRows = sortedDaily.length === 0
+        ? `<div style="font-size:13px;color:#bbb">還沒有每日挑戰紀錄，去打一局「今日挑戰」吧。</div>`
+        : `<table class="leader-table"><tr><th>名次</th><th>日期</th><th>結果</th><th>得分</th><th>難度</th></tr>` + sortedDaily.map((r, i) => {
+            const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
+            return `<tr><td>${medal}</td><td>${r.date}</td><td>${r.win ? "✅ 贏" : "❌ 輸"}</td><td>${r.points >= 0 ? "+" : ""}${r.points}</td><td>${r.difficulty === "easy" ? "簡單" : r.difficulty === "hard" ? "困難" : "普通"}</td></tr>`;
+          }).join("") + `</table>`;
+      const recentDaily = [...stats.dailyResults].slice(-3).reverse().map(r => `${r.date} ${r.win ? "贏" : "輸"} ${r.points >= 0 ? "+" : ""}${r.points}`).join(" · ");
+      const last10Dots = stats.last10.length === 0 ? "還沒有" : stats.last10.map(x => `<span class="${x.win ? "w" : "l"}">${x.win ? "●" : "●"}</span>`).join("");
+      el.innerHTML = `
+        <div class="stats-section">
+          <h3>總覽</h3>
+          <div class="stats-grid">
+            <div class="stat-cell"><b>${games}</b><span>總局數</span></div>
+            <div class="stat-cell"><b>${rate}%</b><span>勝率（${wins}勝）</span></div>
+            <div class="stat-cell"><b>${score.points}</b><span>總積分 · 平均每局 ${avg} 分</span></div>
+            <div class="stat-cell"><b>${stats.streak} 連勝</b><span>最佳連勝 ${stats.bestStreak} 場 · 單局最高 +${stats.bestWinPoints}</span></div>
+          </div>
+          <div style="font-size:13px;margin-top:8px">近 10 局：<span class="wl-dots">${last10Dots}</span> <span style="color:#aaa">（綠＝贏）</span></div>
+          <div style="font-size:13px;margin-top:4px">你總共出了 ${stats.totalMoves} 手、${stats.totalCardsPlayed} 張牌。輸的時候平均剩 ${avgLoseRemain} 張。</div>
+        </div>
+        <div class="stats-section">
+          <h3>你最常用的牌型：${mostCombo}</h3>
+          ${comboEntries.map(([name, cnt]) => `<div class="stat-bar-row"><div class="stat-label"><span>${name}</span><span>${cnt} 次</span></div><div class="stat-bar"><div class="stat-bar-fill" style="width:${Math.round((cnt / maxCombo) * 100)}%"></div></div></div>`).join("")}
+        </div>
+        <div class="stats-section">
+          <h3>你最常輸給：${mostLoss}</h3>
+          ${lossEntries.map(([idx, cnt]) => `<div class="stat-bar-row"><div class="stat-label"><span>${botNames[idx]}</span><span>${cnt} 次</span></div><div class="stat-bar"><div class="stat-bar-fill red" style="width:${Math.round((cnt / maxLoss) * 100)}%"></div></div></div>`).join("")}
+        </div>
+        <div class="stats-section">
+          <h3>難度戰績</h3>
+          ${diffRows}
+        </div>
+        <div class="stats-section">
+          <h3>📅 每日挑戰排行榜（本地，按得分）</h3>
+          <div style="font-size:13px;margin-bottom:8px">每日挑戰：${stats.dailyWins}勝 / ${stats.dailyGames}局（${dailyRate}%）${recentDaily ? "<br />最近： " + recentDaily : ""}</div>
+          ${dailyRows}
+          <div style="font-size:12px;color:#aaa;margin-top:6px">排行榜是你自己在這台裝置上的每日挑戰紀錄，同一天打多次都會記，取最高分排。</div>
+        </div>
+      `;
+    }
+    function resetScore() {
+      score = { points: 0, wins: 0, games: 0 };
+      saveScore();
+      stats = emptyStats();
+      saveStats();
+      updateScoreBoard();
+      const sc = document.getElementById("stats-content");
+      if (sc) renderStats();
+      showToast("戰績已清除（當天首勝 +50 領取紀錄保留，避免重刷）");
+    }
+
+    function createCard(suit, rank) {
+      return {
+        suit: suit,
+        rank: rank,
+        id: rank * 4 + suit, // 0(♣3) ~ 51(♠2)
+        label: SUITS[suit] + RANKS[rank],
+        isRed: suit === 1 || suit === 2
+      };
+    }
+
+    function initGame(customSeed) {
+      clearTimeout(botTimer);
+      document.getElementById("modal-overlay").style.display = "none";
+      const _rm = document.getElementById("resume-modal");
+      if (_rm) _rm.style.display = "none";
+
+      let deck = [];
+      for (let s = 0; s < 4; s++) {
+        for (let r = 0; r < 13; r++) {
+          deck.push(createCard(s, r));
+        }
+      }
+
+      // Fisher-Yates 洗牌（有種子就是每日挑戰：同一天同一副牌）
+      const rng = (customSeed !== undefined && customSeed !== null) ? mulberry32(customSeed) : Math.random;
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+
+      players = [
+        { name: "你 (南)", isHuman: true, hand: [] },
+        { name: "電腦 (西)", isHuman: false, hand: [] },
+        { name: "電腦 (北)", isHuman: false, hand: [] },
+        { name: "電腦 (東)", isHuman: false, hand: [] }
+      ];
+
+      for (let i = 0; i < 52; i++) {
+        players[i % 4].hand.push(deck[i]);
+      }
+
+      // 手牌由小到大排序並找出 ♣3 (id === 0)
+      let starter = 0;
+      for (let p = 0; p < 4; p++) {
+        players[p].hand.sort((a, b) => a.id - b.id);
+        if (players[p].hand.some(c => c.id === 0)) {
+          starter = p;
+        }
+        if (p > 0) document.getElementById(`status-${p}`).textContent = "";
+      }
+
+      currentTurn = starter;
+      lastPlay = null;
+      passCount = 0;
+      isFirstTurn = true;
+      gameOver = false;
+      selectedIndices.clear();
+      // v3 重置
+      undoStack = [];
+      moveLog = [];
+      isReplaying = false;
+      clearTimeout(replayTimer);
+      const _bar = document.getElementById("replay-bar");
+      if (_bar) _bar.classList.remove("show");
+      // 每日挑戰旗標：只有帶種子進來才是每日挑戰，否則就是一般局
+      if (customSeed === undefined || customSeed === null) {
+        isDailyChallenge = false;
+        dailyDateStr = "";
+      }
+
+      document.getElementById("played-cards").innerHTML = "";
+      document.getElementById("board-label").textContent = `持有 ♣3 的【${players[starter].name}】優先出牌`;
+
+      // 存開局快照，供悔牌 / 重播回到開局
+      initialSnapshot = snapshotState();
+      updateHistoryUI();
+      updateDailyUI();
+      updateUI();
+      updateScoreBoard();
+      updateDifficultyUI();
+      updateSoundUI();
+      playShuffleSound();
+      justDealt = true;
+      setTimeout(() => { justDealt = false; }, 700);
+      processTurn();
+    }
+
+    // 牌型判斷核心
+    // 回傳 { valid, type, level, mainRank, mainSuit, name }
+    // level: 1=單張, 2=對子, 3=順子, 4=同花, 5=葫蘆, 6=鐵支, 7=同花順
+    function evaluateHand(cards) {
+      const n = cards.length;
+      if (n === 0) return { valid: false };
+      const sorted = [...cards].sort((a, b) => a.id - b.id);
+
+      // 1. 單張
+      if (n === 1) {
+        return {
+          valid: true,
+          count: 1,
+          level: 1,
+          mainRank: sorted[0].rank,
+          mainSuit: sorted[0].suit,
+          name: `單張 ${sorted[0].label}`
+        };
+      }
+
+      // 2. 一對
+      if (n === 2) {
+        if (sorted[0].rank === sorted[1].rank) {
+          return {
+            valid: true,
+            count: 2,
+            level: 2,
+            mainRank: sorted[1].rank,
+            mainSuit: sorted[1].suit,
+            name: `一對 ${RANKS[sorted[1].rank]}`
+          };
+        }
+        return { valid: false };
+      }
+
+      // 5. 五張牌型
+      if (n === 5) {
+        const ranks = sorted.map(c => c.rank);
+        const suits = sorted.map(c => c.suit);
+        const isFlush = suits.every(s => s === suits[0]);
+
+        // 統計點數出現次數
+        const counts = {};
+        ranks.forEach(r => counts[r] = (counts[r] || 0) + 1);
+        const freq = Object.entries(counts).map(([r, c]) => ({ rank: Number(r), count: c }))
+                           .sort((a, b) => b.count - a.count || b.rank - a.rank);
+
+        // 檢查順子 (一般順子 或 A2345 / 23456)
+        let isStraight = false;
+        let straightHighRank = ranks[4];
+        let straightHighSuit = sorted[4].suit;
+
+        // 連續遞增檢查 (不可跨2，例如 JQKA2 不算順，或依標準連號)
+        if (ranks[4] < 12 &&
+            ranks[1] === ranks[0] + 1 &&
+            ranks[2] === ranks[1] + 1 &&
+            ranks[3] === ranks[2] + 1 &&
+            ranks[4] === ranks[3] + 1) {
+          isStraight = true;
+        }
+        // 特殊順子 A-2-3-4-5 (ranks: 0,1,2,11,12) -> 以 5 為首比大小
+        else if (ranks[0] === 0 && ranks[1] === 1 && ranks[2] === 2 && ranks[3] === 11 && ranks[4] === 12) {
+          isStraight = true;
+          straightHighRank = 2; // '5'
+          straightHighSuit = sorted[2].suit;
+        }
+        // 特殊順子 2-3-4-5-6 (ranks: 0,1,2,3,12) -> 以 6 為首
+        else if (ranks[0] === 0 && ranks[1] === 1 && ranks[2] === 2 && ranks[3] === 3 && ranks[4] === 12) {
+          isStraight = true;
+          straightHighRank = 3; // '6'
+          straightHighSuit = sorted[3].suit;
+        }
+
+        // 同花順
+        if (isFlush && isStraight) {
+          return {
+            valid: true,
+            count: 5,
+            level: 7,
+            mainRank: straightHighRank,
+            mainSuit: straightHighSuit,
+            name: `同花順 (${RANKS[straightHighRank]}高)`
+          };
+        }
+
+        // 鐵支 (4 + 1)
+        if (freq[0].count === 4) {
+          return {
+            valid: true,
+            count: 5,
+            level: 6,
+            mainRank: freq[0].rank,
+            mainSuit: 3,
+            name: `鐵支 ${RANKS[freq[0].rank]}`
+          };
+        }
+
+        // 葫蘆 (3 + 2)
+        if (freq[0].count === 3 && freq[1].count === 2) {
+          return {
+            valid: true,
+            count: 5,
+            level: 5,
+            mainRank: freq[0].rank,
+            mainSuit: 3,
+            name: `葫蘆 ${RANKS[freq[0].rank]}帶${RANKS[freq[1].rank]}`
+          };
+        }
+
+        // 同花
+        if (isFlush) {
+          return {
+            valid: true,
+            count: 5,
+            level: 4,
+            mainRank: ranks[4],
+            mainSuit: suits[0],
+            name: `${SUITS[suits[0]]}同花`
+          };
+        }
+
+        // 順子
+        if (isStraight) {
+          return {
+            valid: true,
+            count: 5,
+            level: 3,
+            mainRank: straightHighRank,
+            mainSuit: straightHighSuit,
+            name: `順子 (${RANKS[straightHighRank]}高)`
+          };
+        }
+      }
+
+      return { valid: false };
+    }
+
+    // 判斷是否可壓過上一手牌
+    function canBeat(evalNew, prevPlay) {
+      if (!evalNew.valid) return false;
+      if (!prevPlay) return true; // 自由出牌權
+
+      if (evalNew.count !== prevPlay.count) return false;
+
+      // 單張或對子：必須同牌型且比較主點數與花色
+      if (evalNew.count < 5) {
+        if (evalNew.mainRank !== prevPlay.mainRank) {
+          return evalNew.mainRank > prevPlay.mainRank;
+        }
+        return evalNew.mainSuit > prevPlay.mainSuit;
+      }
+
+      // 五張牌型：先比牌型階級 (同花順 > 鐵支 > 葫蘆 > 同花 > 順子)
+      if (evalNew.level !== prevPlay.level) {
+        return evalNew.level > prevPlay.level;
+      }
+
+      // 同為五張同階級
+      if (evalNew.mainRank !== prevPlay.mainRank) {
+        return evalNew.mainRank > prevPlay.mainRank;
+      }
+      return evalNew.mainSuit > prevPlay.mainSuit;
+    }
+
+    function processTurn() {
+      if (gameOver) return;
+      updateUI();
+
+      if (isReplaying) return;
+      hideThinking();
+      // 悔牌隨時可用（電腦思考中按下去會取消它的計時），只要還沒結束且有紀錄
+      const _undoBtn = document.getElementById("btn-undo");
+      if (_undoBtn) _undoBtn.disabled = !(!gameOver && undoStack.length > 0 && !isReplaying);
+      if (currentTurn === 0) {
+        // 玩家回合
+        const isFree = (lastPlay === null);
+        document.getElementById("btn-pass").disabled = isFree || isFirstTurn;
+        if (isFirstTurn) {
+          document.getElementById("turn-hint").textContent = "輪到你！第一手必須包含 ♣3";
+        } else if (isFree) {
+          document.getElementById("turn-hint").textContent = "三家 PASS！你獲得自由出牌權";
+        } else {
+          document.getElementById("turn-hint").textContent = `輪到你出牌（需壓過 ${lastPlay.name}）`;
+        }
+      } else {
+        // 電腦回合
+        document.getElementById("btn-play").disabled = true;
+        document.getElementById("btn-pass").disabled = true;
+        document.getElementById("turn-hint").textContent = `等待 ${players[currentTurn].name} 思考中...`;
+        showThinking(players[currentTurn].name);
+        botTimer = setTimeout(() => executeBotTurn(currentTurn), getBotDelay());
+      }
+      saveMidGame();
+    }
+
+    // 電腦 AI 邏輯：出最小能壓的牌，但要扣「拆牌成本」
+    function botMoveCost(move, hand) {
+      const remaining = hand.filter(c => !move.cards.some(mc => mc.id === c.id));
+      if (remaining.length === 0) return -1000; // 能直接出完，最高優先
+      let cost = 0;
+      // 拆對子 / 拆三條的代價
+      const countByRank = {};
+      const remByRank = {};
+      hand.forEach(c => countByRank[c.rank] = (countByRank[c.rank] || 0) + 1);
+      remaining.forEach(c => remByRank[c.rank] = (remByRank[c.rank] || 0) + 1);
+      for (const r in countByRank) {
+        if (countByRank[r] === 2 && remByRank[r] === 1) cost += 18; // 拆對子，剩一張孤張
+        else if (countByRank[r] === 3 && remByRank[r] === 1) cost += 8; // 拆三條
+        else if (countByRank[r] === 3 && remByRank[r] === 2) cost += 3; // 拆三條變對子，小扣
+      }
+      // 別亂浪費 2 / A
+      move.cards.forEach(c => {
+        if (c.rank === 12) cost += 12;
+        else if (c.rank === 11) cost += 4;
+      });
+      // 自由出牌時，同花順 / 鐵支 / 葫蘆先保留，除非只剩這 5 張
+      if (lastPlay === null) {
+        if (move.eval.level >= 6) cost += 30;
+        else if (move.eval.level === 5) cost += 14;
+        else if (move.eval.count === 5 && move.eval.level <= 4) cost -= 6; // 弱的 5 張可以先清
+      }
+      // 尾局：手牌剩 5 張以下，優先把牌出完
+      if (hand.length <= 5) cost -= (5 - remaining.length) * 2;
+      // 點數越小越優先（小權重，只當平手決勝）
+      cost += move.eval.mainRank * 0.3;
+      return cost;
+    }
+
+    // 困難版額外成本：看下家剩幾張來決定要不要擋
+    function botMoveCostHard(move, hand, botIdx) {
+      let cost = botMoveCost(move, hand);
+      const nextIdx = (botIdx + 1) % 4;
+      const nextLeft = players[nextIdx] ? players[nextIdx].hand.length : 99;
+      const afterLeft = hand.length - move.cards.length;
+      // 下家只剩 1 到 2 張，別出小牌送他贏，要出大牌擋
+      if (nextLeft <= 2) {
+        if (move.eval.count < 5 && move.eval.mainRank < 8) cost += 15;
+        if (move.eval.mainRank >= 10) cost -= 8;
+        if (move.eval.count === 5) cost -= 4;
+      }
+      // 自己只剩 2 張以內，優先搶出完
+      if (afterLeft <= 2) cost -= 6;
+      // 下家快贏了，自己這手如果能直接出完更要搶
+      if (nextLeft === 1 && afterLeft === 0) cost -= 10;
+      return cost;
+    }
+
+    function executeBotTurn(botIdx) {
+      if (gameOver || isReplaying) return;
+      hideThinking();
+      const hand = players[botIdx].hand;
+      const validMoves = findAllValidMoves(hand, lastPlay, isFirstTurn);
+
+      if (validMoves.length > 0) {
+        // 簡單：40% 放水直接 PASS（除非能直接贏），否則隨便出
+        if (difficulty === "easy") {
+          const canWin = validMoves.find(m => hand.length - m.cards.length === 0);
+          if (canWin) { commitPlay(botIdx, canWin.cards, canWin.eval); return; }
+          if (Math.random() < 0.4 && !isFirstTurn) { commitPass(botIdx); return; }
+          const chosen = validMoves[Math.floor(Math.random() * validMoves.length)];
+          commitPlay(botIdx, chosen.cards, chosen.eval);
+          return;
+        }
+        validMoves.sort((a, b) => {
+          if (difficulty === "hard") {
+            const ca = botMoveCostHard(a, hand, botIdx);
+            const cb = botMoveCostHard(b, hand, botIdx);
+            if (ca !== cb) return ca - cb;
+          }
+          const ca = botMoveCost(a, hand);
+          const cb = botMoveCost(b, hand);
+          if (ca !== cb) return ca - cb;
+          if (lastPlay === null && a.eval.count !== b.eval.count) {
+            return b.eval.count - a.eval.count; // 自由出牌優先出5張
+          }
+          if (a.eval.level !== b.eval.level) return a.eval.level - b.eval.level;
+          if (a.eval.mainRank !== b.eval.mainRank) return a.eval.mainRank - b.eval.mainRank;
+          return a.eval.mainSuit - b.eval.mainSuit;
+        });
+
+        const chosen = validMoves[0];
+        commitPlay(botIdx, chosen.cards, chosen.eval);
+      } else {
+        commitPass(botIdx);
+      }
+    }
+
+    // 玩家提示：用跟電腦一樣的成本邏輯，選最不虧的一手
+    function humanHint() {
+      if (currentTurn !== 0 || gameOver) {
+        showToast("現在不是你的回合");
+        return;
+      }
+      const moves = findAllValidMoves(players[0].hand, lastPlay, isFirstTurn);
+      if (moves.length === 0) {
+        showToast("沒有可以出的牌，建議 PASS");
+        return;
+      }
+      playClick();
+      moves.sort((a, b) => botMoveCost(a, players[0].hand) - botMoveCost(b, players[0].hand));
+      const chosen = moves[0];
+      const ids = new Set(chosen.cards.map(c => c.id));
+      selectedIndices.clear();
+      players[0].hand.forEach((c, idx) => { if (ids.has(c.id)) selectedIndices.add(idx); });
+      updateUI();
+      showToast(`提示：可出 ${chosen.eval.name}`);
+    }
+
+    // 搜尋手牌中所有合法可出組合
+    function findAllValidMoves(hand, prevPlay, mustIncludeClub3) {
+      let moves = [];
+      const n = hand.length;
+
+      const tryAdd = (cards) => {
+        if (mustIncludeClub3 && !cards.some(c => c.id === 0)) return;
+        const ev = evaluateHand(cards);
+        if (ev.valid && canBeat(ev, prevPlay)) {
+          moves.push({ cards, eval: ev });
+        }
+      };
+
+      // 單張
+      if (!prevPlay || prevPlay.count === 1) {
+        for (let i = 0; i < n; i++) tryAdd([hand[i]]);
+      }
+
+      // 對子
+      if (!prevPlay || prevPlay.count === 2) {
+        for (let i = 0; i < n - 1; i++) {
+          for (let j = i + 1; j < n; j++) {
+            if (hand[i].rank === hand[j].rank) {
+              tryAdd([hand[i], hand[j]]);
+            }
+          }
+        }
+      }
+
+      // 五張牌型（組合搜尋，n <= 13 最多 C(13,5)=1287 種，瞬間完成）
+      if ((!prevPlay || prevPlay.count === 5) && n >= 5) {
+        for (let a = 0; a < n - 4; a++) {
+          for (let b = a + 1; b < n - 3; b++) {
+            for (let c = b + 1; c < n - 2; c++) {
+              for (let d = c + 1; d < n - 1; d++) {
+                for (let e = d + 1; e < n; e++) {
+                  tryAdd([hand[a], hand[b], hand[c], hand[d], hand[e]]);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return moves;
+    }
+
+    function humanPlay() {
+      if (isReplaying) { showToast("重播中不能出牌"); return; }
+      if (currentTurn !== 0 || gameOver) return;
+      const hand = players[0].hand;
+      const chosenCards = Array.from(selectedIndices).map(idx => hand[idx]);
+
+      if (isFirstTurn && !chosenCards.some(c => c.id === 0)) {
+        playInvalidSound();
+        showToast("第一手出牌必須包含 ♣3（梅花3）！");
+        return;
+      }
+
+      const ev = evaluateHand(chosenCards);
+      if (!ev.valid) {
+        playInvalidSound();
+        showToast("不是合法牌型（僅支援單張、對子、順子、同花、葫蘆、鐵支、同花順）！");
+        return;
+      }
+
+      if (!canBeat(ev, lastPlay)) {
+        playInvalidSound();
+        showToast(`無法壓過場上的【${lastPlay.name}】！請出同張數且更大的牌。`);
+        return;
+      }
+
+      pushUndoSnapshot();
+      selectedIndices.clear();
+      commitPlay(0, chosenCards, ev);
+    }
+
+    function humanPass() {
+      if (isReplaying) { showToast("重播中不能 PASS"); return; }
+      if (currentTurn !== 0 || gameOver || lastPlay === null || isFirstTurn) return;
+      pushUndoSnapshot();
+      selectedIndices.clear();
+      commitPass(0);
+    }
+
+    function commitPlay(playerIdx, cards, ev) {
+      playCardSound();
+      hideThinking();
+      if (!isReplaying) {
+        moveLog.push({ playerIdx, type: "play", cards: cards.map(cloneCard), count: ev.count, level: ev.level, mainRank: ev.mainRank, mainSuit: ev.mainSuit, name: ev.name });
+        updateHistoryUI();
+        if (playerIdx === 0) recordHumanCombo(ev);
+      }
+      // 從手牌移除
+      const playIds = new Set(cards.map(c => c.id));
+      players[playerIdx].hand = players[playerIdx].hand.filter(c => !playIds.has(c.id));
+
+      lastPlay = {
+        playerIdx: playerIdx,
+        count: ev.count,
+        level: ev.level,
+        mainRank: ev.mainRank,
+        mainSuit: ev.mainSuit,
+        name: ev.name,
+        cards: cards
+      };
+
+      passCount = 0;
+      isFirstTurn = false;
+
+      // 清除狀態文字
+      for (let p = 1; p <= 3; p++) {
+        document.getElementById(`status-${p}`).textContent = (p === playerIdx) ? ev.name : "";
+      }
+
+      renderPlayedCards(players[playerIdx].name, ev.name, cards);
+
+      // 檢查是否出完獲勝
+      if (players[playerIdx].hand.length === 0) {
+        endGame(playerIdx);
+        return;
+      }
+
+      currentTurn = (currentTurn + 1) % 4;
+      processTurn();
+    }
+
+    function commitPass(playerIdx) {
+      playPassSound();
+      hideThinking();
+      shakeBoard();
+      if (!isReplaying) {
+        moveLog.push({ playerIdx, type: "pass", cards: [], name: "PASS" });
+        updateHistoryUI();
+      }
+      passCount++;
+      if (playerIdx > 0) {
+        document.getElementById(`status-${playerIdx}`).textContent = "PASS";
+      }
+      document.getElementById("board-label").textContent =
+        `${players[playerIdx].name} 喊出 PASS（目前最大：${players[lastPlay.playerIdx].name} 的 ${lastPlay.name}）`;
+
+      // 連續三家 PASS，牌權回到最後出牌者
+      if (passCount >= 3) {
+        currentTurn = lastPlay.playerIdx;
+        lastPlay = null;
+        passCount = 0;
+        for (let p = 1; p <= 3; p++) {
+          document.getElementById(`status-${p}`).textContent = "";
+        }
+        document.getElementById("played-cards").innerHTML = "";
+        document.getElementById("board-label").textContent = `【${players[currentTurn].name}】獲得自由出牌權`;
+      } else {
+        currentTurn = (currentTurn + 1) % 4;
+      }
+
+      processTurn();
+    }
+
+    function endGame(winnerIdx) {
+      gameOver = true;
+      clearMidGameSave();
+      updateUI();
+      if (winnerIdx === 0) { playWinSound(); launchConfetti(); }
+      else { playLoseSound(); }
+
+      const modal = document.getElementById("modal-overlay");
+      const title = document.getElementById("modal-title");
+      const content = document.getElementById("modal-content");
+
+      title.textContent = winnerIdx === 0 ? "🎉 恭喜你贏得大老二！" : `🏆 ${players[winnerIdx].name} 獲勝！`;
+
+      let html = "";
+      players.forEach((p, idx) => {
+        const rem = p.hand.length;
+        const hasTwo = p.hand.filter(c => c.rank === 12).length;
+        let penalty = rem;
+        if (rem >= 10) penalty *= 3;
+        else if (rem >= 8) penalty *= 2;
+        if (hasTwo > 0) penalty *= Math.pow(2, hasTwo);
+
+        html += `
+          <div class="result-row">
+            <span>${p.name}</span>
+            <span>${idx === winnerIdx ? "🥇 贏家 (0 張)" : `剩 ${rem} 張 (扣 ${penalty} 分)`}</span>
+          </div>
+        `;
+      });
+
+      // 計分：贏家拿走所有輸家的扣分總和，輸家扣自己的罰分
+      const penalties = players.map((p, idx) => {
+        if (idx === winnerIdx) return 0;
+        const rem = p.hand.length;
+        const hasTwo = p.hand.filter(c => c.rank === 12).length;
+        let penalty = rem;
+        if (rem >= 10) penalty *= 3;
+        else if (rem >= 8) penalty *= 2;
+        if (hasTwo > 0) penalty *= Math.pow(2, hasTwo);
+        return penalty;
+      });
+      const totalPenalty = penalties.reduce((a, b) => a + b, 0);
+      score.games += 1;
+      if (winnerIdx === 0) {
+        score.wins += 1;
+        score.points += totalPenalty;
+      } else {
+        score.points -= penalties[0];
+      }
+      saveScore();
+      updateScoreBoard();
+
+      if (winnerIdx === 0) {
+        html += `<div class="result-row"><span>本局得分</span><span>+${totalPenalty} 分</span></div>`;
+      } else {
+        html += `<div class="result-row"><span>本局得分</span><span>-${penalties[0]} 分</span></div>`;
+      }
+      html += `<div class="result-row"><span>目前總積分</span><span>${score.points} 分 · ${score.wins}勝 / ${score.games}局</span></div>`;
+
+      // 每日挑戰當天首勝加碼 +50（只算一次，避免刷分）
+      if (isDailyChallenge && winnerIdx === 0 && dailyDateStr) {
+        let claimed = "";
+        try { claimed = localStorage.getItem("bigtwo_daily_win") || ""; } catch (e) {}
+        if (claimed !== dailyDateStr) {
+          score.points += 50;
+          saveScore();
+          updateScoreBoard();
+          html += `<div class="result-row"><span>📅 今日挑戰首勝加碼</span><span>+50 分</span></div>`;
+          try { localStorage.setItem("bigtwo_daily_win", dailyDateStr); } catch (e) {}
+        }
+      }
+      // v4：記完整統計（連勝 / 難度 / 輸給誰 / 每日排行榜），重播不會走到這裡所以不會重算
+      const streakText = recordGameEnd(winnerIdx, totalPenalty, penalties);
+      html += `<div class="result-row"><span>連勝</span><span>${streakText}</span></div>`;
+      html += `<div class="result-row"><span>看完整統計</span><span>按右上角「🏆 戰績」</span></div>`;
+      lastEndHtml = html;
+      lastWinnerIdx = winnerIdx;
+      content.innerHTML = html;
+      modal.style.display = "flex";
+    }
+
+    function renderPlayedCards(playerName, comboName, cards) {
+      document.getElementById("board-label").textContent = `${playerName} 打出：${comboName}`;
+      const container = document.getElementById("played-cards");
+      container.innerHTML = "";
+      const sorted = [...cards].sort((a, b) => a.id - b.id);
+      sorted.forEach(c => {
+        container.appendChild(createCardElement(c));
+      });
+    }
+
+    function createCardElement(card) {
+      const div = document.createElement("div");
+      div.className = `card ${card.isRed ? "red" : "black"}`;
+      div.innerHTML = `
+        <div class="card-top">${RANKS[card.rank]}<br>${SUITS[card.suit]}</div>
+        <div class="card-center">${RANKS[card.rank]}<small>${SUITS[card.suit]}</small></div>
+        <div class="card-bottom">${SUITS[card.suit]}${RANKS[card.rank]}</div>
+      `;
+      return div;
+    }
+
+    function updateUI() {
+      // 更新電腦剩餘張數與高亮框
+      for (let p = 1; p <= 3; p++) {
+        document.getElementById(`count-${p}`).textContent = `${players[p].hand.length} 張`;
+        const badge = document.getElementById(`badge-${p}`);
+        badge.classList.toggle("active", currentTurn === p && !gameOver);
+      }
+
+      // 繪製玩家手牌
+      const container = document.getElementById("hand-container");
+      container.innerHTML = "";
+      players[0].hand.forEach((card, idx) => {
+        const el = createCardElement(card);
+        if (selectedIndices.has(idx)) el.classList.add("selected");
+        if (justDealt) {
+          el.classList.add("dealing");
+          el.style.animationDelay = (idx * 30) + "ms";
+        }
+        el.onclick = () => toggleSelectCard(idx);
+        container.appendChild(el);
+      });
+
+      updatePlayButtonState();
+      updateCounterUI();
+    }
+
+    function toggleSelectCard(idx) {
+      ensureAudio(); playClick();
+      if (selectedIndices.has(idx)) {
+        selectedIndices.delete(idx);
+      } else {
+        if (selectedIndices.size >= 5) return; // 最多選 5 張
+        selectedIndices.add(idx);
+      }
+      updateUI();
+    }
+
+    function clearSelection() {
+      playClick();
+      selectedIndices.clear();
+      updateUI();
+    }
+
+    function updatePlayButtonState() {
+      const btnPlay = document.getElementById("btn-play");
+      const hintEl = document.getElementById("play-hint");
+      const setHint = (t) => { if (hintEl) hintEl.textContent = t; };
+      if (currentTurn !== 0 || gameOver || selectedIndices.size === 0) {
+        btnPlay.disabled = true;
+        if (selectedIndices.size === 0) setHint("點牌選取，最多 5 張，或按「提示」");
+        return;
+      }
+      const chosen = Array.from(selectedIndices).map(i => players[0].hand[i]);
+      // 3、4 張直接給原因，不再只是按鈕變灰
+      if (chosen.length === 3 || chosen.length === 4) {
+        btnPlay.disabled = true;
+        setHint("大老二只支援 1、2、5 張，3、4 張不能出");
+        return;
+      }
+      const ev = evaluateHand(chosen);
+      if (!ev.valid) {
+        btnPlay.disabled = true;
+        setHint("不是合法牌型：支援單張、對子、順子、同花、葫蘆、鐵支、同花順");
+        return;
+      }
+      // 修復：首攻沒含 ♣3 時，按鈕不該亮
+      if (isFirstTurn && !chosen.some(c => c.id === 0)) {
+        btnPlay.disabled = true;
+        setHint("第一手必須包含 ♣3");
+        return;
+      }
+      if (!canBeat(ev, lastPlay)) {
+        btnPlay.disabled = true;
+        setHint(`無法壓過場上的【${lastPlay.name}】，要出同張數且更大的牌`);
+        return;
+      }
+      btnPlay.disabled = false;
+      setHint(`可出：${ev.name}，按「出牌」確認`);
+    }
+
+    // showRules / closeRules 已在上方定義，改用 Modal 取代 alert
+
+    // 啟動：先檢查有沒有未完成的存檔，有就問要不要續玩，沒有才開新局
+    checkResumeOnLoad();
+  </script>
+</body>
+</html>
